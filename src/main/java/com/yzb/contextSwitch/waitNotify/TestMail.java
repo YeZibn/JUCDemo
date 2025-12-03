@@ -1,13 +1,24 @@
-package com.yzb.contextSwitch;
+package com.yzb.contextSwitch.waitNotify;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
 public class TestMail {
+
+    public static void main(String[] args) throws InterruptedException {
+        for(int i=0;i<3;i++){
+            new People().start();
+        }
+        Thread.sleep(1000);
+        MailBoxes.getIds().forEach(id -> {
+            new Postman(id, "邮件" + id).start();
+        });
+
+
+    }
 }
 
 @Slf4j
@@ -38,8 +49,8 @@ class People extends Thread{
         log.debug("人开始工作");
         GuardedObject guardedObject = MailBoxes.createGuardedObject();
         log.debug("收信 id:{}", guardedObject.getId());
-        guardedObject.getResponse(5000);
-        log.debug("收信完成");
+
+        log.debug("收信完成:{}", guardedObject.getResponse(10000));
     }
 }
 
@@ -132,7 +143,7 @@ class GuardedObject{
     public void complete(String mail) {
         // 先处理耗时操作，避免长时间持有锁
         try {
-            log.debug("开始处理结果数据");
+            log.debug("开始送信");
             Thread.sleep(4000); // 模拟处理时间
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -142,7 +153,7 @@ class GuardedObject{
 
         // 锁内只进行状态更新和通知
         synchronized (this) {
-            log.debug("线程传入结果: {}", mail);
+            log.debug("信件放入邮箱: {}", mail);
             response = mail;
             notifyAll(); // 通知所有等待线程
         }
